@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
         title: 'Namer App',
         theme: ThemeData(
           useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurpleAccent),
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
         ),
         home: MyHomePage(),
       ),
@@ -32,6 +32,21 @@ class MyAppState extends ChangeNotifier {
     current = WordPair.random();
     notifyListeners();
   }
+
+  var favorites = <WordPair>[];
+
+  void toggleFavorite() {
+    if (favorites.contains(current)) {
+      favorites.remove(current);
+    } else {
+      favorites.add(current);
+    }
+    notifyListeners();
+  }
+
+  int getFavoriteAmount() {
+    return favorites.length;
+  }
 }
 
 class MyHomePage extends StatelessWidget {
@@ -40,20 +55,69 @@ class MyHomePage extends StatelessWidget {
     var appState = context.watch<MyAppState>();
     var pair = appState.current;
 
+    final theme = Theme.of(context);
+
+    final textStyle = theme.textTheme.displayMedium!.copyWith(
+      color: theme.colorScheme.primary,
+      fontWeight: FontWeight.bold,
+    );
+
+    IconData icon;
+    if (appState.favorites.contains(pair)) {
+      icon = Icons.favorite;
+    } else {
+      icon = Icons.favorite_border;
+    }
+
+    LinearGradient backgroundGradient = LinearGradient(
+      colors: [Colors.white, theme.colorScheme.primary],
+      begin: Alignment.center,
+      end: Alignment.bottomCenter,
+    );
+
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            BigCard(pair: pair),
-            SizedBox(height: 50),
-            ElevatedButton(
-              onPressed: () {
-                appState.getNext();
-              },
-              child: Text("Next"),
-            ),
-          ],
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: backgroundGradient,
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              BigCard(pair: pair),
+              SizedBox(height: 50),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      appState.toggleFavorite();
+                    },
+                    icon: Icon(
+                      icon,
+                      size: 18,
+                    ),
+                    label: Text(
+                      "Favoritar",
+                      textScaleFactor: 1.2,
+                    ),
+                  ),
+                  SizedBox(width: 30),
+                  ElevatedButton(
+                    onPressed: () {
+                      appState.getNext();
+                    },
+                    child: Text("Próximo", textScaleFactor: 1.2),
+                  ),
+                ],
+              ),
+              SizedBox(height: 50),
+              Text(
+                "Favoritos: ${appState.getFavoriteAmount()}",
+                style: textStyle,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -77,11 +141,17 @@ class BigCard extends StatelessWidget {
       fontWeight: FontWeight.w700,
     );
 
-    return Card(
-      color: theme.colorScheme.primary,
-      elevation: 12,
-      shadowColor: theme.colorScheme.primary,
-      surfaceTintColor: Colors.purpleAccent,
+    LinearGradient cardGradient = LinearGradient(
+      colors: [Colors.deepPurpleAccent, theme.colorScheme.primary],
+      begin: Alignment.centerLeft,
+      end: Alignment.centerRight,
+    );
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: cardGradient,
+        borderRadius: BorderRadiusDirectional.circular(16),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Text(
