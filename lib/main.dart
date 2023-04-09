@@ -1,5 +1,7 @@
 import 'package:english_words/english_words.dart';
 import 'package:flutter/material.dart';
+import 'package:namer_app/screen/favorite.dart';
+import 'package:namer_app/screen/home.dart';
 import 'package:provider/provider.dart';
 
 void main() {
@@ -27,15 +29,14 @@ class MyApp extends StatelessWidget {
 
 class MyAppState extends ChangeNotifier {
   var current = WordPair.random();
+  var favorites = <WordPair>[];
 
   void getNext() {
     current = WordPair.random();
     notifyListeners();
   }
 
-  var favorites = <WordPair>[];
-
-  void toggleFavorite() {
+  void toggleFavorite(WordPair current) {
     if (favorites.contains(current)) {
       favorites.remove(current);
     } else {
@@ -43,123 +44,102 @@ class MyAppState extends ChangeNotifier {
     }
     notifyListeners();
   }
-
-  int getFavoriteAmount() {
-    return favorites.length;
-  }
 }
 
-class MyHomePage extends StatelessWidget {
+class MyHomePage extends StatefulWidget {
+  @override
+  State<MyHomePage> createState() => _MyHomePageState();
+}
+
+class _MyHomePageState extends State<MyHomePage> {
+  int selectedIndex = 0;
+
   @override
   Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>();
-    var pair = appState.current;
+    var colorScheme = Theme.of(context).colorScheme;
 
-    final theme = Theme.of(context);
-
-    final textStyle = theme.textTheme.displayMedium!.copyWith(
-      color: theme.colorScheme.primary,
-      fontWeight: FontWeight.bold,
-    );
-
-    IconData icon;
-    if (appState.favorites.contains(pair)) {
-      icon = Icons.favorite;
-    } else {
-      icon = Icons.favorite_border;
+    Widget page;
+    switch (selectedIndex) {
+      case 0:
+        page = HomePage();
+        break;
+      case 1:
+        page = FavoritesPage();
+        break;
+      default:
+        throw UnimplementedError("No widget For  $selectedIndex");
     }
 
-    LinearGradient backgroundGradient = LinearGradient(
-      colors: [Colors.white, theme.colorScheme.primary],
-      begin: Alignment.center,
-      end: Alignment.bottomCenter,
+    var mainArea = ColoredBox(
+      color: colorScheme.surfaceVariant,
+      child: AnimatedSwitcher(
+        duration: Duration(milliseconds: 200),
+        child: page,
+      ),
     );
 
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: backgroundGradient,
-        ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              BigCard(pair: pair),
-              SizedBox(height: 50),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      appState.toggleFavorite();
+    return LayoutBuilder(builder: (context, constraints) {
+      return Scaffold(
+        body: LayoutBuilder(builder: (context, constraints) {
+          if (constraints.maxWidth < 450) {
+            return Column(
+              children: [
+                Expanded(child: mainArea),
+                SafeArea(
+                  child: BottomNavigationBar(
+                    items: [
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.home),
+                        label: 'Início',
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.favorite),
+                        label: 'Favoritos',
+                      ),
+                    ],
+                    currentIndex: selectedIndex,
+                    onTap: (value) {
+                      setState(() {
+                        selectedIndex = value;
+                      });
                     },
-                    icon: Icon(
-                      icon,
-                      size: 18,
-                    ),
-                    label: Text(
-                      "Favoritar",
-                      textScaleFactor: 1.2,
-                    ),
                   ),
-                  SizedBox(width: 30),
-                  ElevatedButton(
-                    onPressed: () {
-                      appState.getNext();
+                )
+              ],
+            );
+          } else {
+            return Row(
+              children: [
+                SafeArea(
+                  child: NavigationRail(
+                    extended: constraints.maxWidth >= 600,
+                    elevation: 8,
+                    destinations: [
+                      NavigationRailDestination(
+                        icon: Icon(Icons.home),
+                        label: Text('Início', textScaleFactor: 1.2),
+                      ),
+                      NavigationRailDestination(
+                        icon: Icon(Icons.favorite),
+                        label: Text('Favoritos', textScaleFactor: 1.2),
+                      ),
+                    ],
+                    selectedIndex: selectedIndex,
+                    onDestinationSelected: (value) {
+                      setState(() {
+                        selectedIndex = value;
+                      });
                     },
-                    child: Text("Próximo", textScaleFactor: 1.2),
                   ),
-                ],
-              ),
-              SizedBox(height: 50),
-              Text(
-                "Favoritos: ${appState.getFavoriteAmount()}",
-                style: textStyle,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class BigCard extends StatelessWidget {
-  const BigCard({
-    super.key,
-    required this.pair,
-  });
-
-  final WordPair pair;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    final style = theme.textTheme.displayMedium!.copyWith(
-      color: theme.colorScheme.onPrimary,
-      fontWeight: FontWeight.w700,
-    );
-
-    LinearGradient cardGradient = LinearGradient(
-      colors: [Colors.deepPurpleAccent, theme.colorScheme.primary],
-      begin: Alignment.centerLeft,
-      end: Alignment.centerRight,
-    );
-
-    return Container(
-      decoration: BoxDecoration(
-        gradient: cardGradient,
-        borderRadius: BorderRadiusDirectional.circular(16),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Text(
-          pair.asPascalCase,
-          style: style,
-          semanticsLabel: "${pair.first} ${pair.second}",
-        ),
-      ),
-    );
+                ),
+                Expanded(
+                  child: mainArea,
+                ),
+              ],
+            );
+          }
+        }),
+      );
+    });
   }
 }
